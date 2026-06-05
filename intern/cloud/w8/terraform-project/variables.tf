@@ -7,7 +7,7 @@ variable "region" {
 variable "instance_type" {
   description = "EC2 type - using t4g.small"
   type        = string
-  default     = "t4g.small"
+  default     = "t4g.medium"
 }
 
 variable "project" {

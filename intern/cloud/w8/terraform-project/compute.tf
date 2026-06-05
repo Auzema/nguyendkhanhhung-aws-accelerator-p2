@@ -88,10 +88,20 @@ resource "aws_instance" "web" {
   }
 
   tags = { Name = "${var.project}-ec2" }
+
+  # user_data keo package/image tu internet -> can route ra IGW san sang truoc khi boot
+  depends_on = [aws_route_table_association.public]
 }
 
 # Gan EIP vao instance
 resource "aws_eip_association" "web" {
   instance_id   = aws_instance.web.id
   allocation_id = aws_eip.web.id
+
+  # AWS tu choi associate EIP khi VPC chua co IGW gan vao (Gateway.NotAttached).
+  # depends_on de IGW + route table duoc tao TRUOC, ke ca khi chay apply -target.
+  depends_on = [
+    aws_internet_gateway.igw,
+    aws_route_table_association.public,
+  ]
 }

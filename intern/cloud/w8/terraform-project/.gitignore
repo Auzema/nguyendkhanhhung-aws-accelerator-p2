@@ -1,0 +1,8 @@
+# Terraform state — chua secret (private key), KHONG commit
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Khoa SSH sinh local + kubeconfig keo ve
+*.pem
+kubeconfig

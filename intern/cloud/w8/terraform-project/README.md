@@ -14,7 +14,7 @@ Dựng **1 EC2**, chạy **minikube** (Kubernetes self-managed) bên trong, depl
                        │  target: EC2:30080
                        ▼
    ┌───────────────────────────────────────────────┐
-   │ EC2 (t4g.small, Amazon Linux 2023 arm64)        │
+   │ EC2 (t4g.medium, Amazon Linux 2023 arm64)       │
    │  Elastic IP (co dinh)                           │
    │                                                 │
    │  socat :30080 ──▶ minikube NodePort :30080      │

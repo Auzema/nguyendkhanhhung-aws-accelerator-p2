@@ -6,3 +6,6 @@
 # Khoa SSH sinh local + kubeconfig keo ve
 *.pem
 kubeconfig
+
+# Claude Code local config (per-may, khong commit)
+.claude/

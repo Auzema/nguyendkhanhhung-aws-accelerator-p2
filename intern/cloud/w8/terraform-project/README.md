@@ -1,6 +1,6 @@
 # K8s on AWS — Terraform 1-Click
 
-Dựng **1 EC2**, chạy **minikube** (Kubernetes self-managed) bên trong, deploy **app static HTML**, expose ra **Internet qua ALB** — tất cả bằng **một lệnh Terraform**.
+Dựng **1 EC2**, chạy **minikube** (Kubernetes self-managed) bên trong, deploy **app static HTML**, expose ra **Internet qua ALB** — tất cả bằng **một lệnh** (`./deploy.sh`, gói 2 phase `terraform apply`).
 
 ## Kiến trúc
 
@@ -28,9 +28,9 @@ Dựng **1 EC2**, chạy **minikube** (Kubernetes self-managed) bên trong, depl
    └───────────────────────────────────────────────┘
                        ▲
                        │ kubernetes provider (https://EIP:8443)
-              ┌─────────────────┐
+              ┌─────────────────────┐
               │ Terraform (may ban) │  aws + tls + local + null + kubernetes
-              └─────────────────┘
+              └─────────────────────┘
 ```
 
 ## 5 Terraform provider (mỗi cái 1 việc thật)
@@ -58,6 +58,8 @@ Dựng **1 EC2**, chạy **minikube** (Kubernetes self-managed) bên trong, depl
 Script tự: lấy IP public của máy → `terraform init` → **2 phase apply** → in URL ALB.
 Mở URL (chờ ~60s cho ALB health check) → thấy trang + video.
 
+> Mặc định: region `us-east-1`, instance `t4g.medium`. Đổi qua `variables.tf` hoặc cờ `-var`. `my_ip` được `deploy.sh` tự lấy (`ifconfig.me`).
+
 > **Vì sao 2 phase?** Provider `kubernetes` cần file `./kubeconfig` tồn tại **lúc plan**, nhưng kubeconfig chỉ có sau khi minikube dựng xong + scp về. Terraform không cho provider config phụ thuộc resource chưa tạo → pattern chuẩn: `apply -target=null_resource.kubeconfig` (dựng cụm + kéo kubeconfig) **rồi** `apply` (deploy app). `deploy.sh` gói cả hai.
 
 ## Dọn (tránh tốn tiền)
@@ -81,7 +83,8 @@ ALB tính tiền **theo giờ** kể cả không traffic → destroy sau khi xon
 - SSH (22) + apiserver (8443): chỉ mở cho **IP máy chạy** (`var.my_ip`).
 - App (30080) trên EC2: chỉ nhận từ **Security Group của ALB** (không phải `0.0.0.0/0`).
 - Chỉ port **80 trên ALB** mở ra Internet.
-- `*.pem`, `kubeconfig`, `*.tfstate` trong `.gitignore` — không commit.
+- `*.pem`, `kubeconfig`, `*.tfstate*`, `.terraform/` nằm trong `.gitignore` — **không commit**.
+- ⚠️ `*.tfstate` chứa **SSH private key** (do `tls_private_key` sinh) ở dạng plaintext → tuyệt đối không đẩy state lên git/remote public.
 
 ## File
 
@@ -96,3 +99,4 @@ ALB tính tiền **theo giờ** kể cả không traffic → destroy sau khi xon
 | `user_data.sh.tpl` | Script EC2 boot: docker, minikube, socat, kubeconfig |
 | `outputs.tf` | alb_url, ec2_public_ip, ssh_command |
 | `deploy.sh` / `destroy.sh` | 1-click lên / xuống |
+| `.gitignore` | Chặn commit state + key: `*.tfstate*`, `*.pem`, `kubeconfig`, `.terraform/` |

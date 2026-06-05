@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>k8s-tf-hung — diagrams</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --ink:#e2e8f0; --muted:#94a3b8;
+    --build:#3b82f6; --use:#22c55e; --admin:#ef4444;
+    --net:#8b5cf6; --ec2:#f59e0b; --k8s:#0ea5e9;
+  }
+  *{box-sizing:border-box}
+  html{ scroll-behavior:smooth }
+  body{
+    margin:0; padding:0 0 64px;
+    background:radial-gradient(1200px 600px at 50% -10%,#13213b,var(--bg));
+    color:var(--ink); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+
+  /* sticky nav */
+  nav.top{
+    position:sticky; top:0; z-index:20; backdrop-filter:blur(8px);
+    background:rgba(15,23,42,.82); border-bottom:1px solid #334155;
+    display:flex; gap:8px; justify-content:center; padding:12px 16px; flex-wrap:wrap;
+  }
+  nav.top a{
+    color:var(--muted); text-decoration:none; font-size:13px; font-weight:600;
+    padding:6px 14px; border-radius:999px; border:1px solid #334155;
+  }
+  nav.top a:hover{ color:var(--ink); border-color:#475569 }
+
+  header.hero{ text-align:center; padding:32px 16px 8px }
+  header.hero h1{ margin:0 0 4px; font-size:26px; letter-spacing:.3px }
+  header.hero .sub{ color:var(--muted); margin:0; font-size:14px }
+
+  h2.secttl{ max-width:1040px; margin:42px auto 14px; padding:0 16px; font-size:18px;
+             display:flex; align-items:center; gap:10px }
+  .tag{ font-size:12px; font-weight:700; color:#fff; padding:3px 10px; border-radius:999px }
+  .tag.build{ background:var(--build) } .tag.use{ background:var(--use) }
+
+  /* ---------- FLOW (cards) ---------- */
+  .grid{ max-width:980px; margin:0 auto; padding:0 16px; display:grid; gap:28px; grid-template-columns:1fr 1fr }
+  @media(max-width:760px){ .grid{ grid-template-columns:1fr } }
+  .phase{ background:var(--panel); border:1px solid #334155; border-radius:16px; padding:18px 18px 8px; box-shadow:0 10px 30px rgba(0,0,0,.35) }
+  .phase h3{ margin:0 0 16px; font-size:15px; display:flex; align-items:center; gap:10px }
+  .step{ position:relative; padding:0 0 28px 46px }
+  .step:last-child{ padding-bottom:6px }
+  .step:not(:last-child)::before{ content:""; position:absolute; left:17px; top:34px; bottom:-2px; width:2px; background:#475569 }
+  .step:not(:last-child)::after{ content:""; position:absolute; left:12px; bottom:8px; border:6px solid transparent; border-top-color:#475569 }
+  .num{ position:absolute; left:0; top:0; width:36px; height:36px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:14px; color:#fff }
+  .card{ background:#0f1b30; border:1px solid #2b3a52; border-radius:12px; padding:12px 14px }
+  .card .t{ font-weight:600; margin:0 0 3px }
+  .card .d{ color:var(--muted); font-size:13px; margin:0 }
+  .port{ color:#fbbf24; font-variant-numeric:tabular-nums; font-weight:600 }
+  .build .num{ background:var(--build) }
+  .use .num{ background:var(--use) }
+  .pillrow{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px }
+  .pill{ font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid #334155; color:var(--muted) }
+  .pill.net{ border-color:var(--net); color:#c4b5fd }
+  .pill.ec2{ border-color:var(--ec2); color:#fcd34d }
+  .pill.k8s{ border-color:var(--k8s); color:#7dd3fc }
+  .bridge{ max-width:980px; margin:22px auto 0; padding:0 16px; text-align:center; color:var(--muted); font-size:13px }
+  .bridge b{ color:var(--use) }
+  .admin{ max-width:980px; margin:26px auto 0; padding:0 16px }
+  .admin .box{ background:#2a1414; border:1px solid #7f1d1d; border-radius:12px; padding:12px 16px; display:flex; gap:12px; align-items:flex-start }
+  .admin .dot{ width:12px; height:12px; border-radius:50%; background:var(--admin); margin-top:5px; flex:0 0 auto }
+  .admin b{ color:#fca5a5 }
+  .legend{ max-width:980px; margin:24px auto 0; padding:0 16px; display:flex; gap:18px; flex-wrap:wrap; justify-content:center; color:var(--muted); font-size:12px }
+  .legend span{ display:inline-flex; align-items:center; gap:6px }
+  .sw{ width:12px; height:12px; border-radius:3px; display:inline-block }
+
+  /* ---------- SEQUENCE ---------- */
+  section.seq{ max-width:1040px; margin:0 auto 34px; padding:18px 20px 8px; background:var(--panel); border:1px solid #334155; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.35) }
+  section.seq h3{ margin:0 0 6px; font-size:15px; display:flex; align-items:center; gap:10px }
+  section.seq p.hint{ color:var(--muted); font-size:13px; margin:0 0 8px }
+  .mermaid{ background:transparent; text-align:center; overflow-x:auto }
+  #err{ display:none; max-width:1040px; margin:0 auto 24px; padding:12px 16px; background:#2a1414; border:1px solid #7f1d1d; color:#fca5a5; border-radius:12px; font-size:13px }
+
+  footer{ max-width:1040px; margin:40px auto 0; text-align:center; color:#64748b; font-size:12px }
+  code{ color:#fbbf24 }
+</style>
+</head>
+<body>
+  <nav class="top">
+    <a href="#flow">Flow</a>
+    <a href="#seq-build">Sequence · Build</a>
+    <a href="#seq-use">Sequence · Request</a>
+  </nav>
+
+  <header class="hero">
+    <h1>k8s-tf-hung &mdash; diagrams</h1>
+    <p class="sub">Terraform spins up minikube on one EC2 box, fronted by an AWS load balancer.</p>
+  </header>
+
+  <!-- ============================== FLOW ============================== -->
+  <h2 class="secttl" id="flow"><span class="tag build">FLOW</span> Step-by-step (build &amp; use)</h2>
+  <div class="grid">
+
+    <section class="phase build">
+      <h3><span class="tag build">PHASE 1</span> BUILD it &mdash; one <code>terraform apply</code></h3>
+      <div class="step"><div class="num">1</div><div class="card"><p class="t">terraform apply</p><p class="d">You run one command. Terraform creates everything below in order.</p></div></div>
+      <div class="step"><div class="num">2</div><div class="card"><p class="t">Build the network</p><p class="d">VPC, 2 public subnets, internet gateway + route to <span class="port">0.0.0.0/0</span>.</p><div class="pillrow"><span class="pill net">VPC 10.0.0.0/16</span><span class="pill net">2 subnets</span><span class="pill net">IGW</span></div></div></div>
+      <div class="step"><div class="num">3</div><div class="card"><p class="t">Launch the EC2 server</p><p class="d">Linux arm64 box, given a <b>fixed public IP</b> (Elastic IP) so it survives restarts.</p><div class="pillrow"><span class="pill ec2">t4g.medium</span><span class="pill ec2">AL2023 arm64</span><span class="pill ec2">Elastic IP</span></div></div></div>
+      <div class="step"><div class="num">4</div><div class="card"><p class="t">Server sets itself up (on boot)</p><p class="d">Installs Docker + socat, then starts a <b>minikube</b> Kubernetes cluster locally.</p><div class="pillrow"><span class="pill ec2">Docker</span><span class="pill ec2">socat</span><span class="pill k8s">minikube</span></div></div></div>
+      <div class="step"><div class="num">5</div><div class="card"><p class="t">Create the load balancer</p><p class="d">ALB listens on <span class="port">:80</span>, forwards to the server on <span class="port">:30080</span> (health-checked).</p></div></div>
+      <div class="step"><div class="num">6</div><div class="card"><p class="t">Grab the cluster key</p><p class="d">Terraform SSHes in, copies <code>kubeconfig</code> back to the laptop so it can talk to the cluster.</p></div></div>
+      <div class="step"><div class="num">7</div><div class="card"><p class="t">Deploy the app</p><p class="d">Applies <b>2&times; nginx pods</b> + a Service. HTML page &amp; video ship inside a ConfigMap.</p><div class="pillrow"><span class="pill k8s">Deployment 2x nginx:1.27</span><span class="pill k8s">ConfigMap</span></div></div></div>
+      <div class="step"><div class="num" style="background:#16a34a">&#10003;</div><div class="card" style="border-color:#16a34a"><p class="t">Done</p><p class="d">Terraform prints the <b>ALB URL</b> &mdash; open it in a browser.</p></div></div>
+    </section>
+
+    <section class="phase use">
+      <h3><span class="tag use">PHASE 2</span> USE it &mdash; a visitor opens the site</h3>
+      <div class="step"><div class="num">1</div><div class="card"><p class="t">Visitor browser</p><p class="d">Sends an <b>HTTP</b> request on port <span class="port">80</span> to the ALB URL.</p></div></div>
+      <div class="step"><div class="num">2</div><div class="card"><p class="t">ALB receives it</p><p class="d">Public load balancer accepts traffic on <span class="port">:80</span> from anywhere.</p></div></div>
+      <div class="step"><div class="num">3</div><div class="card"><p class="t">Forward to EC2</p><p class="d">ALB sends the request to the server on port <span class="port">30080</span>.</p></div></div>
+      <div class="step"><div class="num">4</div><div class="card"><p class="t">socat relays inward</p><p class="d">A small relay forwards <span class="port">:30080</span> from the host into the minikube cluster.</p><div class="pillrow"><span class="pill ec2">socat-app</span></div></div></div>
+      <div class="step"><div class="num">5</div><div class="card"><p class="t">Kubernetes Service</p><p class="d">NodePort <span class="port">30080</span> picks a healthy pod to handle it.</p><div class="pillrow"><span class="pill k8s">Service / NodePort</span></div></div></div>
+      <div class="step"><div class="num">6</div><div class="card"><p class="t">nginx pod serves</p><p class="d">One of the 2 nginx pods returns <code>index.html</code> + <code>yes_web.mp4</code>.</p></div></div>
+      <div class="step"><div class="num" style="background:#16a34a">&#9654;</div><div class="card" style="border-color:#16a34a"><p class="t">Video plays</p><p class="d">Page loads in the browser and the video autoplays. Success.</p></div></div>
+    </section>
+  </div>
+
+  <p class="bridge">After Phase 1 finishes, the site is <b>live</b> &rarr; Phase 2 is what happens on every visit.</p>
+  <div class="admin"><div class="box"><span class="dot"></span><div><b>Admin path (you only).</b> Your IP can SSH on port <span class="port">22</span> and reach the Kubernetes API on <span class="port">8443</span> &mdash; locked to <code>var.my_ip</code>, not the public internet.</div></div></div>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--net)"></i> Network</span>
+    <span><i class="sw" style="background:var(--ec2)"></i> EC2 / host</span>
+    <span><i class="sw" style="background:var(--k8s)"></i> Kubernetes</span>
+    <span><i class="sw" style="background:var(--admin)"></i> Admin-only</span>
+  </div>
+
+  <!-- ============================== SEQUENCE ============================== -->
+  <div id="err">Could not load Mermaid from the CDN (no internet?). The diagram source is still in the page &mdash; paste it into <b>mermaid.live</b> to view.</div>
+
+  <h2 class="secttl" id="seq-build"><span class="tag build">SEQUENCE</span> Provision lifecycle</h2>
+  <section class="seq">
+    <p class="hint">Who talks to whom while the cluster is built &mdash; one <code>terraform apply</code>.</p>
+    <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor You as You (laptop)
+    participant TF as Terraform
+    participant AWS as AWS API
+    participant EC2 as EC2 server
+    participant MK as minikube
+
+    You->>TF: terraform apply
+    TF->>AWS: Create VPC, 2 subnets, IGW, route table
+    TF->>AWS: Allocate Elastic IP (fixed public IP)
+    TF->>AWS: Launch EC2 (user_data injects the EIP)
+    AWS->>EC2: Boot + run cloud-init (once)
+    EC2->>EC2: Install Docker + socat, add 2GB swap
+    EC2->>MK: minikube start --apiserver-ips=EIP
+    EC2->>EC2: socat-app :30080, socat-api :8443
+    EC2->>EC2: Write kubeconfig.ext, touch READY
+    TF->>AWS: Create ALB :80 + Target Group :30080 + attach EC2
+    TF->>EC2: SSH: wait for READY, then scp kubeconfig
+    EC2-->>TF: kubeconfig (server = EIP:8443)
+    TF->>MK: Apply ConfigMap + Deployment (2x nginx) + Service
+    MK-->>TF: Resources created
+    TF-->>You: Outputs: ALB URL, EC2 IP, ssh command
+    </pre>
+  </section>
+
+  <h2 class="secttl" id="seq-use"><span class="tag use">SEQUENCE</span> Live request</h2>
+  <section class="seq">
+    <p class="hint">What happens on every page load.</p>
+    <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor V as Visitor
+    participant ALB as ALB :80
+    participant EC2 as EC2 host :30080
+    participant SOC as socat relay
+    participant SVC as K8s Service (NodePort 30080)
+    participant POD as nginx pod (1 of 2)
+
+    V->>ALB: HTTP GET / (port 80)
+    ALB->>EC2: Forward to instance :30080
+    EC2->>SOC: Hand off :30080
+    SOC->>SVC: Into the minikube cluster
+    SVC->>POD: Route to a healthy pod
+    POD->>POD: Read index.html + yes_web.mp4 from ConfigMap
+    POD-->>SVC: 200 OK + page/video
+    SVC-->>SOC: response
+    SOC-->>EC2: response
+    EC2-->>ALB: response
+    ALB-->>V: 200 OK (video autoplays)
+    </pre>
+  </section>
+
+  <footer>k8s-tf-hung &middot; us-east-1 &middot; Terraform + minikube-on-EC2 + ALB</footer>
+
+  <script type="module">
+    try{
+      const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+      mermaid.initialize({
+        startOnLoad:false, theme:'dark', securityLevel:'loose',
+        sequence:{ showSequenceNumbers:true, actorMargin:60, mirrorActors:false, useMaxWidth:true }
+      });
+      await mermaid.run({ querySelector:'.mermaid' });
+    }catch(e){
+      document.getElementById('err').style.display='block';
+      console.error('mermaid load failed', e);
+    }
+  </script>
+</body>
+</html>

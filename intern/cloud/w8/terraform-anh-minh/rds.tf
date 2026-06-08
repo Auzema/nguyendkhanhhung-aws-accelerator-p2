@@ -47,4 +47,11 @@ resource "aws_db_instance" "mysql" {
   multi_az               = false # single-AZ cho re
 
   skip_final_snapshot = true # destroy nhanh, khong tao snapshot cuoi
+
+  # RDS tao/xoa lau -> noi rong timeout cho chac (default 40m, set 60m)
+  timeouts {
+    create = "60m"
+    delete = "60m"
+    update = "60m"
+  }
 }

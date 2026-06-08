@@ -23,5 +23,5 @@ echo ">> IP cua ban: $MYIP"
 terraform init -input=false
 terraform apply -var="my_ip=$MYIP" -auto-approve
 
-echo " XONG. Mo URL (cho ~1-2p cho nginx + RDS healthy):"
+echo " XONG (RDS co the mat 10-15p trong luc apply). Cho them ~1-2p cho nginx boot roi mo URL:"
 echo "   $(terraform output -raw web_url)"

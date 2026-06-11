@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+  namespace: demo
+spec:
+  metrics:
+    - name: success-rate
+      interval: 20s
+      count: 5                       # take 5 measurements during the canary step
+      successCondition: result[0] >= 0.95   # >=95% non-5xx responses = healthy
+      failureLimit: 2                # 2 bad measurements -> FAIL -> abort rollout
+      provider:
+        prometheus:
+          address: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+          query: |
+            sum(rate(flask_http_request_total{namespace="demo", status!~"5.."}[1m]))
+            /
+            sum(rate(flask_http_request_total{namespace="demo"}[1m]))

@@ -35,7 +35,11 @@ spec:
     canary:
       steps:
         - setWeight: 25
-        - pause: {} # indefinite pause -> manual promote (Phase 5)
+        - pause: { duration: 30s }    # let traffic + metrics accumulate
+        - analysis:                   # AUTO judge: query Prometheus success-rate
+            templates:
+              - templateName: success-rate
+        # if analysis passes -> continue; if it fails -> rollout auto-aborts to stable
         - setWeight: 50
         - pause: { duration: 30s }
         - setWeight: 100

@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: api
+  namespace: demo
+  labels:
+    app: api
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: w9-api:1
+          imagePullPolicy: IfNotPresent   # image loaded into minikube, not a registry
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ERROR_RATE
+              value: "0"          # bump to e.g. "0.5" to make a BAD version (Phase 6)
+            - name: VERSION
+              value: "v1"         # change to trigger a new canary (Phase 5)
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+  strategy:
+    canary:
+      steps:
+        - setWeight: 25
+        - pause: {}                 # indefinite pause -> manual promote (Phase 5)
+        - setWeight: 50
+        - pause: { duration: 30s }
+        - setWeight: 100

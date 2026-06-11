@@ -16,6 +16,13 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: argo-rollouts
+  # The API server defaults spec.conversion={strategy:None} on CRDs the chart
+  # doesn't set it on -> ArgoCD reports OutOfSync forever. Ignore that field.
+  ignoreDifferences:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      jsonPointers:
+        - /spec/conversion
   syncPolicy:
     automated:
       prune: true

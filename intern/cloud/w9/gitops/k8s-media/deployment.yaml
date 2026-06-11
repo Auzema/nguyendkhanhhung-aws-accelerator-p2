@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: media
+  namespace: media
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: media
+  template:
+    metadata:
+      labels:
+        app: media
+    spec:
+      containers:
+        - name: media
+          # CHANGE this to YOUR Docker Hub username if it is not "auzema".
+          image: docker.io/auzema/media:v1
+          ports:
+            - containerPort: 8080
+          env:
+            # Not secret — edit these for your bucket.
+            - name: S3_BUCKET
+              value: "gitapp-demo-hung"
+            - name: AWS_REGION
+              value: "us-east-1"
+          # AWS keys come from a Secret created MANUALLY with kubectl
+          # (never committed to Git). See README.
+          envFrom:
+            - secretRef:
+                name: media-aws
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

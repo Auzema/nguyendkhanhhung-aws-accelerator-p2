@@ -26,7 +26,7 @@ spec:
             - name: ERROR_RATE
               value: "0" # bump to e.g. "0.5" to make a BAD version (Phase 6)
             - name: VERSION
-              value: "v2" # change to trigger a new canary (Phase 5)
+              value: "v3" # change to trigger a new canary (Phase 5)
           readinessProbe:
             httpGet:
               path: /healthz
@@ -35,8 +35,8 @@ spec:
     canary:
       steps:
         - setWeight: 25
-        - pause: { duration: 30s }    # let traffic + metrics accumulate
-        - analysis:                   # AUTO judge: query Prometheus success-rate
+        - pause: { duration: 30s } # let traffic + metrics accumulate
+        - analysis: # AUTO judge: query Prometheus success-rate
             templates:
               - templateName: success-rate
         # if analysis passes -> continue; if it fails -> rollout auto-aborts to stable

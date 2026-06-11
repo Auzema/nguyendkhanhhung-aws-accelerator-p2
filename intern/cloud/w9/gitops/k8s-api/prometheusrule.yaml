@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: api-slo
+  namespace: demo
+  labels:
+    app: api
+    release: kube-prometheus-stack   # helps Prometheus discover the rule
+spec:
+  groups:
+    - name: api-slo.rules
+      rules:
+        # --- SLI: rolling 5m success rate (non-5xx / total) ---
+        - record: api:success_rate:ratio5m
+          expr: |
+            sum(rate(flask_http_request_total{namespace="demo", status!~"5.."}[5m]))
+            /
+            sum(rate(flask_http_request_total{namespace="demo"}[5m]))
+
+        # --- Alert: error rate over 5% (SLO 99.5% -> 0.5% budget; 5% = fast burn) ---
+        # `for: 1m` short so it fires quickly in the demo; real SLO alerts use
+        # multi-window burn rate (1h/5m + 6h/30m).
+        - alert: ApiHighErrorRate
+          expr: (1 - api:success_rate:ratio5m) > 0.05
+          for: 1m
+          labels:
+            severity: critical
+            app: api
+          annotations:
+            summary: "api error rate > 5% (SLO breach)"
+            description: "demo/api error rate is {{ $value | humanizePercentage }} over the last 5m."

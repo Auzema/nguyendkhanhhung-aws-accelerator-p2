@@ -151,7 +151,7 @@ Inject lỗi để test: sửa `ERROR_RATE` trong `k8s-api/rollout.yaml` → pus
 
 ---
 
-## 8. Hạn chế đã biết (trung thực)
+## 8. Hạn chế đã biết
 
 - **AnalysisTemplate đo success rate toàn namespace**, không chỉ riêng pod canary. Khi rollback
   từ bản lỗi về bản tốt, các pod lỗi cũ còn lại kéo điểm xuống → analysis có thể abort nhầm bản tốt.

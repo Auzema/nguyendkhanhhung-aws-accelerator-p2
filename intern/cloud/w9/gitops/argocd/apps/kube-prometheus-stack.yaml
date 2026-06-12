@@ -27,9 +27,9 @@ spec:
               - alertmanager-smtp
           config:
             global:
-              smtp_smarthost: 'smtp-relay.brevo.com:587'
-              smtp_from: 'lemans19008@gmail.com'
-              smtp_auth_username: 'ae71a2001@smtp-brevo.com'
+              smtp_smarthost: '<fill in blank>'
+              smtp_from: '<fill in blank>'
+              smtp_auth_username: '<fill in blank>'
               # Password read from the mounted Secret file -> never in Git.
               smtp_auth_password_file: /etc/alertmanager/secrets/alertmanager-smtp/password
               smtp_require_tls: true

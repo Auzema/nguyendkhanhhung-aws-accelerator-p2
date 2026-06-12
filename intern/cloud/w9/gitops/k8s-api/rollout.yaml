@@ -24,9 +24,9 @@ spec:
               containerPort: 8080
           env:
             - name: ERROR_RATE
-              value: "0" # bump to e.g. "0.5" to make a BAD version (Phase 6)
+              value: "0.9" # bump to e.g. "0.5" to make a BAD version (Phase 6)
             - name: VERSION
-              value: "v6" # change to trigger a new canary (Phase 5)
+              value: "v7" # change to trigger a new canary (Phase 5)
           readinessProbe:
             httpGet:
               path: /healthz

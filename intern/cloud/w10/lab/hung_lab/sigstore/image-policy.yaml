@@ -1,0 +1,14 @@
+apiVersion: policy.sigstore.dev/v1beta1
+kind: ClusterImagePolicy
+metadata:
+  name: signed-images-policy
+spec:
+  images:
+    - glob: "ghcr.io/vuong-bach/**"
+  authorities:
+    - key:
+        data: |
+          -----BEGIN PUBLIC KEY-----
+          MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEnpKJXHt6xKawjqHY5J78p6Mwne+m
+          lWz+uNGg3HA1cgzdaro/YSu5AC681GJtQJImYxul3N0mk3D/AxWXq5FKtA==
+          -----END PUBLIC KEY-----

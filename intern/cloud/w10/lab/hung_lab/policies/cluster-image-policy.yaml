@@ -5,8 +5,10 @@ metadata:
 spec:
   images:
     - glob: "ghcr.io/vuong-bach/**"
+  mode: enforce
   authorities:
-    - key:
+    - name: authority-0
+      key:
         data: |
           -----BEGIN PUBLIC KEY-----
           MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEnpKJXHt6xKawjqHY5J78p6Mwne+m

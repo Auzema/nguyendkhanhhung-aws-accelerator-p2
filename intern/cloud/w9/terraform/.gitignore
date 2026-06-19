@@ -1,0 +1,7 @@
+# NEVER commit state — it contains the IAM secret access key in plaintext.
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+*.tfvars

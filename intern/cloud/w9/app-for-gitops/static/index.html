@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Media Store</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+  header { padding: 20px 24px; background: #1e293b; border-bottom: 1px solid #334155; }
+  h1 { margin: 0; font-size: 1.3rem; }
+  main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+  .upload { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  input[type=file] { color: #e2e8f0; }
+  button { background: #3b82f6; color: #fff; border: 0; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 0.9rem; }
+  button:hover { background: #2563eb; }
+  button.del { background: #ef4444; padding: 4px 10px; font-size: 0.8rem; }
+  button.del:hover { background: #dc2626; }
+  #status { font-size: 0.85rem; color: #94a3b8; min-height: 1.2em; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; overflow: hidden; }
+  .card img, .card video { width: 100%; height: 180px; object-fit: cover; display: block; background: #000; }
+  .card .meta { padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .card .name { font-size: 0.75rem; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .empty { color: #64748b; margin-top: 24px; }
+</style>
+</head>
+<body>
+<header><h1>📦 Media Store — upload &amp; play (S3)</h1></header>
+<main>
+  <div class="upload">
+    <input type="file" id="file" accept="image/*,video/*" />
+    <button id="btn" onclick="upload()">Upload</button>
+  </div>
+  <div id="status"></div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">No media yet. Upload something.</div>
+</main>
+<script>
+const VIDEO_EXT = ['mp4', 'webm', 'mov', 'ogg', 'm4v'];
+const statusEl = document.getElementById('status');
+
+function ext(key) { return (key.split('.').pop() || '').toLowerCase(); }
+function isVideo(key) { return VIDEO_EXT.includes(ext(key)); }
+function shortName(key) { return key.replace(/^\d+-/, ''); }
+
+async function load() {
+  try {
+    const res = await fetch('/api/list');
+    if (!res.ok) throw new Error(await res.text());
+    const items = await res.json();
+    const grid = document.getElementById('grid');
+    const empty = document.getElementById('empty');
+    grid.innerHTML = '';
+    empty.style.display = items.length ? 'none' : 'block';
+    for (const it of items) {
+      const media = isVideo(it.key)
+        ? `<video src="${it.url}" controls></video>`
+        : `<img src="${it.url}" loading="lazy" />`;
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = media +
+        `<div class="meta"><span class="name" title="${shortName(it.key)}">${shortName(it.key)}</span>` +
+        `<button class="del" onclick="del('${encodeURIComponent(it.key)}')">Delete</button></div>`;
+      grid.appendChild(card);
+    }
+  } catch (e) {
+    statusEl.textContent = 'Load failed: ' + e.message;
+  }
+}
+
+async function upload() {
+  const input = document.getElementById('file');
+  const btn = document.getElementById('btn');
+  if (!input.files.length) { statusEl.textContent = 'Pick a file first.'; return; }
+  const fd = new FormData();
+  fd.append('file', input.files[0]);
+  btn.disabled = true;
+  statusEl.textContent = 'Uploading…';
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    statusEl.textContent = 'Uploaded: ' + shortName(data.key);
+    input.value = '';
+    load();
+  } catch (e) {
+    statusEl.textContent = 'Upload failed: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function del(key) {
+  if (!confirm('Delete this file?')) return;
+  try {
+    const res = await fetch('/api/item?key=' + key, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    load();
+  } catch (e) {
+    statusEl.textContent = 'Delete failed: ' + e.message;
+  }
+}
+
+load();
+</script>
+</body>
+</html>

@@ -35,6 +35,8 @@ spec:
           value: "v0.0.1"
         - name: ERROR_RATE
           value: "0"
+        - name: RETRY_TRIGGER
+          value: "1"
         livenessProbe:
           httpGet:
             path: /healthz

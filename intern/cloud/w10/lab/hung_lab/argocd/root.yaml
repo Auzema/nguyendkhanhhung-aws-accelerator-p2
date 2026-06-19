@@ -8,8 +8,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/Vuong-Bach/temp.git
-    path: argocd/apps
+    repoURL: https://github.com/Auzema/nguyendkhanhhung-aws-accelerator-p2.git
+    path: intern/cloud/w10/lab/hung_lab/argocd/apps
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc

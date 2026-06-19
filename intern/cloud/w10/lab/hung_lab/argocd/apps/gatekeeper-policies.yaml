@@ -1,0 +1,24 @@
+# Sync các ConstraintTemplate + Constraint từ folder gatekeeper/
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gatekeeper-policies
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Vuong-Bach/temp.git
+    path: gatekeeper
+    targetRevision: main
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - ServerSideApply=true

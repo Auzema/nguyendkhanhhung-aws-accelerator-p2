@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: sigstore-policies
+  name: policies
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "5"
@@ -9,10 +9,11 @@ spec:
   project: default
   source:
     repoURL: https://github.com/Auzema/nguyendkhanhhung-aws-accelerator-p2.git
-    path: intern/cloud/w10/lab/hung_lab/sigstore
+    path: intern/cloud/w10/lab/hung_lab/policies
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc
+    namespace: cosign-system
   syncPolicy:
     automated:
       prune: true

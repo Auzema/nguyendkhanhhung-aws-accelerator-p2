@@ -2,7 +2,7 @@
 # >>> DOI <BUCKET-DUY-NHAT> thanh ten bucket that da tao
 terraform {
   backend "s3" {
-    bucket         = "tf-anh-minh-tfstate-CHANGEME"
+    bucket         = "terraform-anh-minh-123"
     key            = "w8/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "tf-anh-minh-tflock"

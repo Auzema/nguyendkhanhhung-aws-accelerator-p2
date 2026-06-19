@@ -98,8 +98,8 @@
   <div class="grid">
 
     <section class="phase build">
-      <h3><span class="tag build">PHASE 1</span> BUILD it &mdash; one <code>terraform apply</code></h3>
-      <div class="step"><div class="num">1</div><div class="card"><p class="t">terraform apply</p><p class="d">You run one command. Terraform creates everything below in order.</p></div></div>
+      <h3><span class="tag build">PHASE 1</span> BUILD it &mdash; <code>./deploy.sh</code> (2-phase apply)</h3>
+      <div class="step"><div class="num">1</div><div class="card"><p class="t">./deploy.sh</p><p class="d">One command for you &mdash; but it wraps <b>two</b> <code>terraform apply</code> runs. <b>Phase 1A:</b> build infra + cluster, then <code>scp</code> the kubeconfig back. <b>Phase 1B:</b> create the ALB + deploy the app. (Why split? the <code>kubernetes</code> provider needs <code>./kubeconfig</code> to exist <i>at plan time</i>, which only happens after the cluster is up.)</p></div></div>
       <div class="step"><div class="num">2</div><div class="card"><p class="t">Build the network</p><p class="d">VPC, 2 public subnets, internet gateway + route to <span class="port">0.0.0.0/0</span>.</p><div class="pillrow"><span class="pill net">VPC 10.0.0.0/16</span><span class="pill net">2 subnets</span><span class="pill net">IGW</span></div></div></div>
       <div class="step"><div class="num">3</div><div class="card"><p class="t">Launch the EC2 server</p><p class="d">Linux arm64 box, given a <b>fixed public IP</b> (Elastic IP) so it survives restarts.</p><div class="pillrow"><span class="pill ec2">t4g.medium</span><span class="pill ec2">AL2023 arm64</span><span class="pill ec2">Elastic IP</span></div></div></div>
       <div class="step"><div class="num">4</div><div class="card"><p class="t">Server sets itself up (on boot)</p><p class="d">Installs Docker + socat, then starts a <b>minikube</b> Kubernetes cluster locally.</p><div class="pillrow"><span class="pill ec2">Docker</span><span class="pill ec2">socat</span><span class="pill k8s">minikube</span></div></div></div>
@@ -122,7 +122,8 @@
   </div>
 
   <p class="bridge">After Phase 1 finishes, the site is <b>live</b> &rarr; Phase 2 is what happens on every visit.</p>
-  <div class="admin"><div class="box"><span class="dot"></span><div><b>Admin path (you only).</b> Your IP can SSH on port <span class="port">22</span> and reach the Kubernetes API on <span class="port">8443</span> &mdash; locked to <code>var.my_ip</code>, not the public internet.</div></div></div>
+  <div class="admin"><div class="box"><span class="dot"></span><div><b>Admin path (you only).</b> Your IP can SSH on port <span class="port">22</span> and reach the Kubernetes API on <span class="port">8443</span> &mdash; locked to <code>var.my_ip</code>, not the public internet. The app port <span class="port">30080</span> on the EC2 only accepts traffic from the <b>ALB's security group</b> &mdash; never <span class="port">0.0.0.0/0</span>, so nobody can hit the box directly.</div></div></div>
+  <p class="bridge"><b style="color:#7dd3fc">5 Terraform providers, one job each:</b> <code>aws</code> (infra) &middot; <code>tls</code> (SSH key) &middot; <code>local</code> (write .pem) &middot; <code>null</code> (SSH wait + scp kubeconfig) &middot; <code>kubernetes</code> (deploy the app).</p>
   <div class="legend">
     <span><i class="sw" style="background:var(--net)"></i> Network</span>
     <span><i class="sw" style="background:var(--ec2)"></i> EC2 / host</span>
@@ -135,7 +136,7 @@
 
   <h2 class="secttl" id="seq-build"><span class="tag build">SEQUENCE</span> Provision lifecycle</h2>
   <section class="seq">
-    <p class="hint">Who talks to whom while the cluster is built &mdash; one <code>terraform apply</code>.</p>
+    <p class="hint">Who talks to whom while the cluster is built &mdash; <code>./deploy.sh</code> runs <b>two</b> applies (the <code>kubernetes</code> provider needs <code>./kubeconfig</code> at plan time).</p>
     <pre class="mermaid">
 sequenceDiagram
     autonumber
@@ -145,7 +146,8 @@ sequenceDiagram
     participant EC2 as EC2 server
     participant MK as minikube
 
-    You->>TF: terraform apply
+    You->>TF: ./deploy.sh
+    Note over You,MK: PHASE 1 — apply -target=null_resource.kubeconfig
     TF->>AWS: Create VPC, 2 subnets, IGW, route table
     TF->>AWS: Allocate Elastic IP (fixed public IP)
     TF->>AWS: Launch EC2 (user_data injects the EIP)
@@ -154,9 +156,10 @@ sequenceDiagram
     EC2->>MK: minikube start --apiserver-ips=EIP
     EC2->>EC2: socat-app :30080, socat-api :8443
     EC2->>EC2: Write kubeconfig.ext, touch READY
-    TF->>AWS: Create ALB :80 + Target Group :30080 + attach EC2
     TF->>EC2: SSH: wait for READY, then scp kubeconfig
     EC2-->>TF: kubeconfig (server = EIP:8443)
+    Note over You,MK: PHASE 2 — full apply (kubeconfig now exists at plan time)
+    TF->>AWS: Create ALB :80 + Target Group :30080 + attach EC2
     TF->>MK: Apply ConfigMap + Deployment (2x nginx) + Service
     MK-->>TF: Resources created
     TF-->>You: Outputs: ALB URL, EC2 IP, ssh command

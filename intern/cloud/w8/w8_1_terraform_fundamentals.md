@@ -31,7 +31,7 @@ Nam bắt đầu toát mồ hôi. Cậu lại tiếp tục hành trình click ch
 
 Dưới đây là phần phân tích kỹ thuật nghiêm túc và chi tiết về toàn bộ cú pháp HCL (HashiCorp Configuration Language) được áp dụng trong Terraform.
 
-### 1. Cấu Trúc Khối Cấu Hình Hệ Thống (Terraform Block)
+### 1. Khối Cấu Hình Hệ Thống (Terraform Block)
 Khối `terraform {}` chứa các cài đặt cốt lõi của chính Terraform, bao gồm phiên bản Terraform yêu cầu và các provider cần thiết.
 
 ```hcl
@@ -41,20 +41,20 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0" # Chỉ cho phép nâng cấp minor version (ví dụ: từ 5.0 lên 5.99, không lên 6.0)
+      version = "~> 5.0" # Ràng buộc phiên bản Provider (chỉ cho phép nâng cấp minor version)
     }
   }
 }
 ```
 
-### 2. Cấu Trúc Nhà Cung Cấp (Provider Block)
+### 2. Khối Nhà Cung Cấp (Provider Block)
 Đóng vai trò dịch mã HCL thành các lệnh gọi API của nhà cung cấp cloud tương ứng.
 
 ```hcl
 provider "aws" {
   region = "ap-southeast-1"
   
-  # Cấu hình Default Tags để tự động áp dụng tag cho tất cả tài nguyên được tạo bởi provider này
+  # Cấu hình Default Tags tự động áp dụng tag cho tất cả tài nguyên được tạo bởi provider này
   default_tags {
     tags = {
       Environment = var.environment
@@ -65,29 +65,22 @@ provider "aws" {
 }
 ```
 
-### 3. Cấu Trúc Tài Nguyên (Resource Block)
+### 3. Khối Tài Nguyên (Resource Block)
 Khai báo tài nguyên vật lý sẽ được khởi tạo trên cloud.
-
-```
-resource "aws_instance" "web_server" { ... }
-   │          │             │
-   │      Resource Type  Resource Name (Tên logic trong code)
-Block Type
-```
 
 ```hcl
 resource "aws_instance" "web_server" {
   ami           = "ami-0c55b159cbfafe1f0"
   instance_type = "t3.micro"
 
-  # Tham chiếu động đến ID của một tài nguyên khác
+  # Tham chiếu động đến thuộc tính của một tài nguyên khác
   subnet_id              = aws_subnet.public_subnet.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 }
 ```
 
 ### 4. Nguồn Dữ Liệu Đọc (Data Source Block)
-Truy vấn thông tin từ các tài nguyên đã tồn tại sẵn trên cloud (được tạo thủ công hoặc từ một source khác) để sử dụng lại trong code mà không quản lý vòng đời của chúng.
+Truy vấn thông tin từ các tài nguyên đã tồn tại sẵn trên cloud để sử dụng lại trong code mà không quản lý vòng đời của chúng.
 
 ```hcl
 # Truy vấn AMI Amazon Linux 2 mới nhất từ AWS
@@ -128,7 +121,7 @@ variable "environment" {
   type        = string
   description = "Tên môi trường triển khai"
   
-  # Block Validation: Ràng buộc giá trị hợp lệ của biến ngay khi compile
+  # Block Validation: Ràng buộc giá trị hợp lệ của biến ngay khi biên dịch
   validation {
     condition     = contains(["dev", "staging", "prod"], var.environment)
     error_message = "Giá trị môi trường phải thuộc danh sách: dev, staging, prod."
@@ -137,7 +130,7 @@ variable "environment" {
 ```
 
 ### 6. Giá Trị Địa Phương (Locals Block)
-Đóng vai trò như các hằng số hoặc biến trung gian giúp gộp các biểu thức phức tạp lại để tái sử dụng nhiều lần trong file cấu hình, tránh lặp lại code.
+Đóng vai trò như các biến số hoặc hằng số nội bộ giúp gộp các biểu thức phức tạp hoặc lặp đi lặp lại để tái sử dụng, giúp code sạch và dễ bảo trì.
 
 ```hcl
 locals {
@@ -148,15 +141,14 @@ locals {
   }
 }
 
-# Áp dụng local variable
 resource "aws_s3_bucket" "log_bucket" {
   bucket = "${local.name_prefix}-logs"
   tags   = local.common_tags
 }
 ```
 
-### 7. Giá Trị Đầu Ra (Outputs Block)
-Trả về các thông tin hữu ích sau khi triển khai thành công hạ tầng, thường dùng để hiển thị cho người vận hành hoặc truyền tham số cho các project Terraform khác.
+### 7. Khối Đầu Ra (Outputs Block)
+Trả về các thông tin hữu ích sau khi triển khai thành công hạ tầng.
 
 ```hcl
 output "web_public_ip" {
@@ -166,7 +158,7 @@ output "web_public_ip" {
 
 output "db_connection_string" {
   value       = "mongodb://${aws_instance.db.private_ip}:27017"
-  sensitive   = true # Bảo mật chuỗi kết nối trong output đầu ra
+  sensitive   = true # Ẩn thông tin nhạy cảm ở đầu ra
 }
 ```
 
@@ -174,99 +166,58 @@ output "db_connection_string" {
 
 ## 🔁 Phần 3: Biến, Vòng Lặp & Câu Lệnh Điều Kiện trong HCL
 
-Khi viết code chuyên nghiệp, ta cần tạo hạ tầng động dựa trên danh sách, cấu hình môi trường hoặc tạo tài nguyên có điều kiện.
-
-### 1. Sử Dụng Tham Số Điều Kiện (Ternary Operator)
+### 1. Toán Tử Điều Kiện (Ternary Operator)
 Cú pháp: `condition ? true_val : false_val`
 
 ```hcl
-variable "enable_public_ip" {
-  type    = bool
-  default = true
-}
-
 resource "aws_instance" "app" {
-  ami           = "ami-0c55b159cbfafe1f0"
-  instance_type = "t3.micro"
-  
-  # Nếu enable_public_ip = true thì gán IP public, ngược lại gán false
-  associate_public_ip_address = var.enable_public_ip ? true : false
+  ami                         = "ami-0c55b159cbfafe1f0"
+  instance_type               = "t3.micro"
+  associate_public_ip_address = var.environment == "prod" ? false : true
 }
 ```
 
 ### 2. Vòng Lặp Với Tham Số `count`
-Sử dụng khi muốn nhân bản nhiều tài nguyên giống hệt nhau hoặc tạo tài nguyên có điều kiện (bằng cách đặt `count = 0` hoặc `count = 1`).
-
+Tạo ra một danh sách các tài nguyên giống nhau bằng index số (`count.index`).
 ```hcl
-variable "create_bastion" {
-  type    = bool
-  default = true
-}
-
-# Nếu create_bastion = true, count = 1 (tạo 1 instance). Nếu false, count = 0 (không tạo instance nào)
-resource "aws_instance" "bastion" {
-  count         = var.create_bastion ? 1 : 0
+resource "aws_instance" "web" {
+  count         = 3
   ami           = "ami-0c55b159cbfafe1f0"
   instance_type = "t3.micro"
 
   tags = {
-    # Sử dụng count.index (bắt đầu từ 0) để phân biệt tên từng instance
-    Name = "bastion-host-${count.index}"
+    Name = "web-server-${count.index}" # Tạo ra web-server-0, web-server-1, web-server-2
   }
 }
 ```
-*Nhược điểm của `count`*: Khi xóa một phần tử ở giữa danh sách, Terraform sẽ cập nhật lại toàn bộ index phía sau và có thể hủy/tạo lại ngoài mong muốn.
 
 ### 3. Vòng Lặp Với Tham Số `for_each`
-Sử dụng khi muốn tạo các tài nguyên dựa trên một tập hợp (set) hoặc một bản đồ (map). Đây là giải pháp tối ưu hơn `count` vì mỗi tài nguyên được định danh bằng một khóa (key) chuỗi cụ thể chứ không phụ thuộc vào index số.
+Lặp qua một tập hợp (set) hoặc một bản đồ (map) để tạo ra các tài nguyên định danh bằng các chuỗi khóa (key) cụ thể thay vì chỉ số thứ tự. Đây là giải pháp khuyến nghị vì nó giúp tránh việc hủy/tạo lại tài nguyên ngoài ý muốn khi sửa đổi các phần tử ở giữa danh sách.
 
 ```hcl
-variable "subnets_config" {
-  type = map(object({
-    cidr_block = string
-    az         = string
-  }))
-  default = {
-    subnet_a = { cidr_block = "10.0.1.0/24", az = "ap-southeast-1a" }
-    subnet_b = { cidr_block = "10.0.2.0/24", az = "ap-southeast-1b" }
-  }
-}
-
 resource "aws_subnet" "public" {
-  for_each          = var.subnets_config # Lặp qua map subnets_config
+  for_each          = var.subnets_config # Map chứa subnet_name và cấu hình
   vpc_id            = aws_vpc.main.id
-  cidr_block        = each.value.cidr_block # Lấy giá trị cidr_block
-  availability_zone = each.value.az         # Lấy giá trị az
+  cidr_block        = each.value.cidr_block
+  availability_zone = each.value.az
 
   tags = {
-    Name = "subnet-${each.key}" # each.key là subnet_a hoặc subnet_b
+    Name = "subnet-${each.key}"
   }
 }
 ```
 
-### 4. Vòng Lặp Trong Giá Trị (For Expressions & Splat Operator)
-Dùng để biến đổi hoặc lọc các danh sách/map dữ liệu.
-
+### 4. Biểu Thức Vòng Lặp Trong Giá Trị (For Expressions & Splat)
+Biến đổi dữ liệu danh sách hoặc map trực tiếp trong code.
 ```hcl
-variable "user_names" {
-  type    = list(string)
-  default = ["alice", "bob", "charlie"]
+# Trích xuất toàn bộ ARN từ danh sách IAM users và viết hoa tên
+output "uppercase_user_names" {
+  value = [for u in aws_iam_user.users : upper(u.name)]
 }
 
-# Tạo danh sách các IAM User từ biến
-resource "aws_iam_user" "users" {
-  for_each = toset(var.user_names)
-  name     = each.key
-}
-
-# Sử dụng For Expression để chuyển đổi danh sách tên viết hoa toàn bộ
-output "uppercase_users" {
-  value = [for name in var.user_names : upper(name)]
-}
-
-# Splat Operator (*): Lấy nhanh toàn bộ thuộc tính ARN từ danh sách IAM users
-output "user_arns" {
-  value = aws_iam_user.users[*].arn
+# Splat Operator (*) để lấy nhanh danh sách ID
+output "instance_ids" {
+  value = aws_instance.web[*].id
 }
 ```
 
@@ -274,22 +225,15 @@ output "user_arns" {
 
 ## 🔒 Phần 4: Các Tham Số Siêu Cấu Hình (Meta-Arguments)
 
-Meta-arguments là các tham số đặc biệt nằm trong block tài nguyên giúp kiểm soát cách Terraform xử lý và quản lý tài nguyên đó.
+Meta-arguments cấu hình cách thức vận hành và quản lý tài nguyên của Terraform.
 
-### 1. Ràng Buộc Phụ Thuộc Tương Tác (`depends_on`)
-Mặc dù Terraform tự động phân tích đồ thị quan hệ để xác định thứ tự tạo tài nguyên, đôi khi có những mối quan hệ ngầm không thể hiện qua code. Ta dùng `depends_on` để ép buộc thứ tự.
+### 1. Phụ Thuộc Rõ Ràng (`depends_on`)
+Ép buộc Terraform phải hoàn thành tài nguyên này trước khi bắt đầu tạo tài nguyên kia, áp dụng khi không có quan hệ tham chiếu trực tiếp trong code nhưng có sự phụ thuộc về mặt logic nghiệp vụ (ví dụ: tạo EKS Cluster chỉ sau khi IAM Role được cấu hình xong).
 
 ```hcl
-resource "aws_iam_role" "eks_role" {
-  name = "eks-cluster-role"
-  # ... code role ...
-}
-
 resource "aws_eks_cluster" "aws_eks" {
   name     = "xshop-eks"
   role_arn = aws_iam_role.eks_role.arn
-
-  # Đảm bảo EKS Cluster chỉ được tạo SAU KHI IAM Role đã được tạo xong và hoạt động ổn định
   depends_on = [
     aws_iam_role.eks_role
   ]
@@ -297,116 +241,114 @@ resource "aws_eks_cluster" "aws_eks" {
 ```
 
 ### 2. Quản Lý Vòng Đời Tài Nguyên (`lifecycle` block)
-
-#### **create_before_destroy (Tạo trước khi xóa)**
-Mặc định, nếu thay đổi một tham số bắt buộc phải build lại tài nguyên, Terraform sẽ xóa tài nguyên cũ trước rồi mới tạo tài nguyên mới. Điều này gây ra downtime. Khai báo `create_before_destroy` giúp tạo tài nguyên mới chạy ổn định trước, sau đó mới dọn dẹp tài nguyên cũ.
-```hcl
-lifecycle {
-  create_before_destroy = true
-}
-```
-
-#### **prevent_destroy (Ngăn chặn hành vi xóa)**
-Bảo vệ tài nguyên quan trọng khỏi các thao tác xóa vô ý (nhầm lệnh `terraform destroy`).
-```hcl
-lifecycle {
-  prevent_destroy = true
-}
-```
-
-#### **ignore_changes (Bỏ qua các cập nhật thay đổi ngoài code)**
-Nếu có những tham số được cập nhật tự động ngoài cloud (ví dụ: AWS tự động sửa Auto Scaling group capacity, hoặc SRE đổi tag tay), ta báo cho Terraform bỏ qua những thuộc tính này khi đối chiếu drift.
-```hcl
-lifecycle {
-  ignore_changes = [
-    tags,
-    associate_public_ip_address,
-  ]
-}
-```
+*   **`create_before_destroy = true`**: Thay đổi mặc định của Terraform. Thay vì xóa tài nguyên cũ trước rồi mới tạo tài nguyên mới, nó sẽ tạo tài nguyên mới chạy ổn định rồi mới xóa tài nguyên cũ nhằm giảm thiểu tối đa thời gian downtime hệ thống.
+*   **`prevent_destroy = true`**: Chặn đứng mọi hành vi xóa tài nguyên này khi chạy lệnh `destroy`. Thích hợp bảo vệ Database, S3 Bucket lưu data quan trọng.
+*   **`ignore_changes = [...]`**: Bỏ qua các thay đổi đối với một số thuộc tính cụ thể khi đối chiếu trạng thái. Thích hợp khi thuộc tính đó được thay đổi tự động bên ngoài cloud (ví dụ: Auto Scaling điều chỉnh số lượng máy chủ, hoặc tags được gán tự động bởi AWS Control Tower).
 
 ---
 
-## ⚙️ Phần 5: Đi Sâu Luồng Làm Việc & Các Lệnh CLI Nâng Cao
+## ⚙️ Phần 5: Hệ Thống Lệnh CLI Chuyên Sâu & Môi Trường Vận Hành
 
-Quy trình vận hành Terraform đòi hỏi sự chuẩn xác từ khâu định dạng, kiểm tra cú pháp cho tới triển khai.
+Hệ thống lệnh CLI của Terraform hỗ trợ kiểm soát toàn diện vòng đời hạ tầng và xử lý sự cố.
 
-### 1. Lệnh Khởi Tạo & Định Dạng Code
-*   **`terraform init -upgrade`**: Cập nhật tất cả các provider plugins lên phiên bản mới nhất nằm trong khoảng ràng buộc cho phép.
-*   **`terraform fmt`**: Tự động căn lề, định dạng lại toàn bộ file code `.tf` theo tiêu chuẩn HCL. Luôn luôn chạy lệnh này trước khi commit code.
-*   **`terraform validate`**: Kiểm tra tính hợp lệ về cú pháp, biến khai báo, kiểu dữ liệu mà không cần gọi API AWS hay kiểm tra thực tế.
+### 1. Nhóm Lệnh Khởi Tạo & Định Dạng (Initialization & Validation)
+*   **`terraform init`**: Khởi tạo thư mục làm việc, tải các Provider plugins được định nghĩa trong code về thư mục ẩn `.terraform/`.
+    *   `-upgrade`: Ép buộc tải phiên bản mới nhất của Provider nằm trong khoảng ràng buộc cho phép trong code.
+    *   `-backend-config="path/to/backend.tfvars"`: Cấu hình backend (S3, Consul) động tại thời điểm khởi chạy, tách biệt cấu hình backend khỏi code gốc.
+*   **`terraform fmt`**: Tự động chuẩn hóa định dạng, căn lề toàn bộ file `.tf` theo tiêu chuẩn HCL.
+    *   `-check`: Kiểm tra xem các file đã được định dạng đúng chuẩn chưa nhưng không ghi đè thay đổi (thường dùng trong bước kiểm tra của CI pipeline).
+*   **`terraform validate`**: Kiểm tra tính hợp lệ về mặt cú pháp và logic liên kết của code mà không cần truy vấn hạ tầng thực tế.
 
-### 2. Lệnh Lập Kế Hoạch & Triển Khai
-*   **`terraform plan -out=tfplan`**: Xuất bản vẽ hạ tầng ra một file nhị phân cụ thể tên là `tfplan`. Điều này đảm bảo rằng khi ta apply, Terraform sẽ chạy chính xác cấu hình đã được duyệt mà không sợ bị thay đổi giữa chừng.
-*   **`terraform plan -var-file="production.tfvars"`**: Đọc các giá trị biến từ một file cấu hình biến dành riêng cho môi trường Production.
-*   **`terraform apply "tfplan"`**: Triển khai trực tiếp từ bản vẽ đã xuất. Bước này sẽ bỏ qua câu hỏi xác nhận `yes` và đảm bảo an toàn tuyệt đối.
-*   **`terraform apply -auto-approve`**: Bỏ qua bước hỏi xác nhận thủ công, thường dùng trong pipeline CI/CD.
+### 2. Nhóm Lệnh Triển Khai & Bản Vẽ Hạ Tầng (Execution Workflow)
+*   **`terraform plan`**: Đối chiếu hạ tầng thực tế, so sánh với code và sinh ra bản vẽ thay đổi.
+    *   `-out=path/to/file.tfplan`: Xuất bản vẽ ra một file nhị phân cụ thể. Đảm bảo tính toàn vẹn của kế hoạch triển khai, ngăn chặn việc hạ tầng thực tế bị thay đổi bởi tác nhân khác giữa lúc plan và apply.
+    *   `-var="key=value"` hoặc `-var-file="path.tfvars"`: Truyền giá trị cho các biến đầu vào trực tiếp từ CLI.
+    *   `-detailed-exitcode`: Trả về exit code chi tiết (0: không thay đổi, 2: có thay đổi hạ tầng, 1: lỗi). Dùng để lập trình logic tự động hóa trong CI/CD.
+    *   `-replace="aws_instance.web[0]"`: (Thay thế lệnh `taint` cũ từ v0.15.2+) Đánh dấu tài nguyên cụ thể sẽ bị hủy và tạo lại ngay trong lượt apply tiếp theo mà không làm ảnh hưởng các tài nguyên khác.
+*   **`terraform apply`**: Thực thi thay đổi lên cloud.
+    *   `path/to/file.tfplan`: Triển khai trực tiếp từ file bản vẽ đã xuất ở bước plan mà không cần hỏi lại xác nhận `yes`. Đây là cách triển khai chuẩn trong môi trường sản xuất.
+    *   `-auto-approve`: Tự động đồng ý triển khai mà không cần nhập `yes` trên console.
+    *   `-target=aws_instance.web`: Chỉ áp dụng thay đổi cho một tài nguyên duy nhất được chỉ định (khuyến cáo hạn chế sử dụng vì có thể phá vỡ đồ thị phụ thuộc của hạ tầng).
+*   **`terraform destroy`**: Hủy toàn bộ tài nguyên được quản lý bởi cấu hình Terraform hiện hành.
+    *   `-auto-approve`: Bỏ qua xác nhận xác thực.
+    *   `-target=...`: Chỉ hủy một tài nguyên cụ thể.
 
-### 3. Lệnh Quản Lý Trạng Thái (State Management CLI)
-**Tuyệt đối không chỉnh sửa file `terraform.tfstate` bằng tay.** Muốn thay đổi state, ta phải tương tác qua bộ lệnh:
-*   **`terraform state list`**: Liệt kê toàn bộ các tài nguyên hiện có trong file state.
-*   **`terraform state show <resource_name>`**: Hiển thị thông tin chi tiết từng thuộc tính của tài nguyên cụ thể đang lưu trong state.
-*   **`terraform state rm <resource_name>`**: Gỡ bỏ tài nguyên ra khỏi tầm quản lý của Terraform (tài nguyên ngoài cloud vẫn tồn tại nhưng Terraform sẽ không đối chiếu hay xóa nó nữa).
-*   **`terraform state mv <old_name> <new_name>`**: Đổi tên logic của tài nguyên trong state khi ta thay đổi tên khai báo trong code `.tf` để tránh việc tài nguyên bị hủy và tạo lại.
+### 3. Nhóm Lệnh Quản Lý Trạng Thái (State Management)
+*   **`terraform state`**: Bộ lệnh can thiệp và điều chỉnh trực tiếp file `terraform.tfstate`.
+    *   `state list`: Liệt kê tất cả các tài nguyên đang được Terraform quản lý trong file state.
+    *   `state show <resource_address>`: Hiển thị toàn bộ thông tin chi tiết (các tham số và giá trị thực tế) của một tài nguyên cụ thể trong state.
+    *   `state mv <old_address> <new_address>`: Đổi tên logic của tài nguyên trong file state. Dùng khi ta cấu trúc lại code (refactor) và đổi tên tài nguyên trong file `.tf` nhưng không muốn Terraform hủy và tạo mới tài nguyên đó ngoài thực tế.
+    *   `state rm <resource_address>`: Gỡ bỏ tài nguyên khỏi file state. Tài nguyên ngoài cloud vẫn tồn tại nhưng Terraform sẽ không còn theo dõi hay quản lý nữa.
+*   **`terraform import <resource_address> <cloud_id>`**: Nhập thông tin cấu hình của một tài nguyên được tạo thủ công ngoài cloud vào file state của Terraform.
+*   **`terraform refresh`**: (Hạn chế dùng trực tiếp, vì plan/apply đã tự động tích hợp refresh) Truy vấn trạng thái thực tế của tài nguyên trên cloud và cập nhật vào file state cục bộ để phát hiện kịp thời sự trôi lệch cấu hình.
+*   **`terraform force-unlock <lock_id>`**: Giải phóng cơ chế khóa trạng thái (State Lock) khi có sự cố xảy ra làm tiến trình apply bị ngắt quãng giữa chừng (ví dụ: máy chạy CI mất kết nối) khiến file state bị khóa vô hạn.
+
+### 4. Nhóm Lệnh Quản Lý Workspace (Multi-environment Workspaces)
+*   **`terraform workspace`**: Quản lý nhiều trạng thái hạ tầng khác nhau (ví dụ: Dev, Staging, Prod) một cách độc lập trong cùng một thư mục cấu hình code `.tf`.
+    *   `workspace list`: Liệt kê tất cả các workspace hiện có của dự án.
+    *   `workspace select <workspace_name>`: Chuyển đổi ngữ cảnh làm việc sang workspace được chỉ định.
+    *   `workspace new <workspace_name>`: Tạo mới một workspace trống hoàn toàn.
+    *   `workspace delete <workspace_name>`: Xóa một workspace không còn sử dụng (chỉ thực hiện được khi đang ở workspace khác).
+    *   `workspace show`: Hiển thị tên workspace đang hoạt động hiện tại. Trong code HCL, ta có thể tham chiếu trực tiếp qua biến `${terraform.workspace}` để đặt tên tài nguyên động tương thích theo từng môi trường.
+
+### 5. Nhóm Lệnh Phân Tích & Tiện Ích (Analysis & Utility)
+*   **`terraform console`**: Mở môi trường dòng lệnh tương tác (REPL) để viết và thử nghiệm các biểu thức HCL, kiểm tra cách hoạt động của các hàm build-in (như `merge`, `concat`, `lookup`) trên dữ liệu thực tế mà không cần chạy apply.
+*   **`terraform output`**: Trích xuất các giá trị khai báo trong block `output` từ file state.
+    *   `-json`: Xuất đầu ra dưới dạng cấu trúc dữ liệu JSON phục vụ việc parse dữ liệu tự động cho các công cụ khác.
+*   **`terraform graph`**: Sinh ra sơ đồ dạng đồ thị thể hiện mối quan hệ phụ thuộc lẫn nhau giữa các tài nguyên dưới định dạng DOT, giúp trực quan hóa kiến trúc hệ thống.
+*   **`terraform providers`**: Liệt kê chi tiết các providers được yêu cầu và đang được sử dụng trong project để kiểm soát tính tương thích.
+
+### 6. Nhóm Lệnh Xác Thực (Authentication)
+*   **`terraform login`**: Đăng nhập và xác thực với Terraform Cloud (TFC) hoặc Terraform Enterprise (TFE), tự động lấy và lưu API token vào file cấu hình local (`~/.terraform.d/credentials.tfrc.json`).
+*   **`terraform logout`**: Đăng xuất và xóa API token đã lưu cục bộ trên máy tính.
+
+### 7. Biến Môi Trường Điều Khiển (Terraform Environment Variables)
+*   **`TF_LOG`**: Bật chế độ ghi nhật ký debug của Terraform. Các mức độ chi tiết tăng dần: `INFO`, `WARNING`, `ERROR`, `DEBUG`, `TRACE` (dùng khi cần tìm lỗi giao tiếp API giữa Terraform và Cloud provider).
+*   **`TF_LOG_PATH`**: Đường dẫn chỉ định lưu file log debug ra đĩa.
+*   **`TF_VAR_<variable_name>`**: Định nghĩa giá trị cho biến Terraform thông qua biến môi trường của hệ điều hành (ví dụ: chạy lệnh `export TF_VAR_environment="prod"` trước khi chạy plan).
+*   **`TF_DATA_DIR`**: Thay đổi thư mục lưu trữ dữ liệu làm việc của dự án (mặc định là thư mục ẩn `.terraform/`).
 
 ---
 
-## 🎯 Phần 6: Bộ Câu Hỏi Luyện Vấn Đáp Chuẩn Bị Với Mentor Minh
+## 🏗️ Phần 6: Tích Hợp Thực Tế & Các Tình Huống Vận Dụng Dự Án
 
-Dưới đây là hệ thống câu hỏi lý thuyết kết hợp tình huống dự án thực tế giúp bạn tự tin vượt qua buổi phỏng vấn.
+### 1. Quy Trình Import Tài Nguyên Tạo Tay (Console) Vào Code
+Khi hệ thống có sẵn các tài nguyên được tạo thủ công (click tay) từ trước, ta phải đưa chúng vào quản lý tập trung bằng code mà không được gây mất mát dữ liệu hoặc downtime.
 
-### 🟢 Mức độ: DỄ (Hiểu khái niệm cốt lõi)
+#### Luồng xử lý:
+1.  **Khai báo Resource rỗng**: Viết một block resource trong code `.tf` của bạn với tên logic mong muốn.
+    ```hcl
+    resource "aws_s3_bucket" "existing_bucket" {
+      # Để trống các cấu hình bên trong hoặc chỉ ghi các tham số cơ bản nhất
+    }
+    ```
+2.  **Chạy lệnh Import**: Liên kết tài nguyên thực tế với block code vừa viết bằng lệnh:
+    ```bash
+    terraform import aws_s3_bucket.existing_bucket my-manual-bucket-name
+    ```
+3.  **Đồng bộ cấu hình**: Chạy lệnh `terraform plan`. Lúc này, Terraform sẽ thông báo sự sai lệch vì code của bạn đang rỗng trong khi thực tế bucket có cấu hình.
+4.  **Cập nhật code**: Đọc chi tiết log của plan, bổ sung các tham số vào block code ở bước 1 cho đến khi chạy `terraform plan` báo kết quả:
+    `No changes. Infrastructure is up-to-date.`
+    Lúc này, tài nguyên đã hoàn toàn thuộc quyền quản lý của Terraform.
 
-#### **Câu 1: Block `data` trong Terraform dùng để làm gì? Phân biệt nó với block `resource`.**
-*   **Trả lời**: 
-    *   Block `resource` dùng để khai báo và quản lý vòng đời (tạo, cập nhật, xóa) của một tài nguyên thực tế trên Cloud.
-    *   Block `data` (Data Source) là một cơ chế chỉ đọc (read-only). Nó dùng để truy vấn thông tin của các tài nguyên đã tồn tại sẵn bên ngoài hệ thống (do click tay hoặc do dự án khác tạo) để truyền thông tin đó vào code Terraform hiện tại.
+### 2. Xử Lý Xung Đột State Lock Trong Môi Trường Làm Việc Nhóm
+Khi hai kỹ sư SRE cùng chạy `terraform apply` một lúc, hoặc khi pipeline CI đang chạy thì một người khác cố tình sửa đổi hạ tầng.
 
-#### **Câu 2: Tại sao chúng ta cần chạy lệnh `terraform fmt` và `terraform validate` trong quá trình làm việc?**
-*   **Trả lời**:
-    *   `terraform fmt` giúp định dạng lại toàn bộ code `.tf` theo chuẩn cú pháp HCL để code sạch sẽ, dễ đọc, thống nhất quy chuẩn viết code giữa các thành viên trong nhóm.
-    *   `terraform validate` giúp kiểm tra lỗi cú pháp, kiểu dữ liệu của biến, kiểm tra xem các tài nguyên tham chiếu chéo có tồn tại không. Lệnh này giúp phát hiện lỗi sớm trước khi chạy lệnh `plan` (vốn tốn thời gian vì phải gọi API lên cloud).
+#### Cơ chế hoạt động:
+*   Mỗi khi có lệnh làm thay đổi hạ tầng, Terraform gửi một yêu cầu khóa (lock) lên backend (ví dụ: ghi một record vào bảng DynamoDB).
+*   Nếu có người khác đang chạy apply, Terraform sẽ phát hiện file state đang bị khóa và chặn đứng thao tác của người thứ hai để tránh việc ghi đè đè lên nhau gây hỏng file state (corrupted state).
 
----
+#### Xử lý sự cố State Lock bị kẹt vô hạn:
+Trong trường hợp tiến trình apply bị crash (mất mạng, mất điện giữa chừng) nhưng chưa kịp gửi lệnh giải phóng khóa (unlock), hệ thống sẽ báo lỗi khóa file state khi có người chạy lệnh tiếp theo.
+1.  Lấy mã khóa `ID` (Lock ID) từ thông báo lỗi trên terminal.
+2.  Xác minh chắc chắn không có ai khác đang thực sự deploy hạ tầng.
+3.  Chạy lệnh giải phóng cưỡng bức:
+    ```bash
+    terraform force-unlock <LOCK_ID>
+    ```
 
-### 🟡 Mức độ: TRUNG BÌNH (Hiểu cơ chế vận hành)
-
-#### **Câu 3: So sánh sự khác nhau giữa tham số lặp `count` và `for_each`. Khi nào nên dùng loại nào?**
-*   **Trả lời**:
-    *   `count` sử dụng một số nguyên để tạo ra số lượng tài nguyên tương ứng. Các tài nguyên được phân biệt qua index số (`[0], [1], [2]`).
-        *   *Nên dùng*: Khi muốn tạo nhanh các tài nguyên giống hệt nhau hoặc bật/tắt tài nguyên có điều kiện (`count = 0` hoặc `count = 1`).
-    *   `for_each` sử dụng một tập hợp (set) hoặc map để tạo tài nguyên. Mỗi tài nguyên được định danh bằng một chuỗi key cụ thể.
-        *   *Nên dùng*: Khi tạo các tài nguyên có cấu hình chi tiết khác nhau (ví dụ: tạo nhiều subnet với CIDR block khác nhau).
-        *   *Ưu điểm*: Khi xóa một phần tử ở giữa map, Terraform chỉ xóa đúng tài nguyên tương ứng với key đó, không gây ảnh hưởng hay làm dịch chuyển index của các tài nguyên khác như `count`.
-
-#### **Câu 4: Làm thế nào để ẩn các thông tin nhạy cảm (như mật khẩu Database, Access Key) không cho hiển thị trên màn hình Console khi chạy pipeline CI/CD?**
-*   **Trả lời**: 
-    Ta khai báo thuộc tính `sensitive = true` bên trong khối định nghĩa biến `variable` hoặc khối `output`. 
-    Khi chạy `terraform plan` hoặc `terraform apply`, Terraform sẽ tự động ẩn các giá trị này và thay thế bằng chuỗi `(sensitive value)` trên màn hình log console. 
-    *Lưu ý*: Giá trị nhạy cảm này vẫn được lưu dưới dạng text thường trong file `terraform.tfstate`, do đó cần bảo mật file state.
-
----
-
-### 🔴 Mức độ: KHÓ (Vận dụng dự án thực tế)
-
-#### **Câu 5: Trong dự án X-Shop, giả sử một S3 Bucket quan trọng chứa ảnh sản phẩm đã được tạo tay trên AWS Console từ trước. Bây giờ, sếp yêu cầu đưa S3 Bucket này vào quản lý bằng Terraform mà không được làm mất mát dữ liệu hiện có. Quy trình thực hiện như thế nào?**
-*   **Trả lời**: Quy trình chuyển dịch một tài nguyên tồn tại sẵn vào quản lý bằng Terraform gồm 3 bước:
-    1.  **Khai báo code**: Viết một block `resource "aws_s3_bucket" "product_images" {}` trong file code `.tf` với các thuộc tính khớp đúng cấu hình đang chạy trên AWS Console.
-    2.  **Liên kết bằng lệnh `terraform import`** (Hoặc dùng khối `import` trong Terraform 1.5+): Chạy lệnh:
-        ```bash
-        terraform import aws_s3_bucket.product_images <tên_bucket_thực_tế_trên_aws>
-        ```
-        Lệnh này sẽ kéo thông tin cấu hình thực tế của bucket về và ghi đè vào file trạng thái `terraform.tfstate`.
-    3.  **Đối chiếu kiểm tra**: Chạy `terraform plan`. 
-        *   Nếu kết quả báo `No changes. Infrastructure is up-to-date`, nghĩa là code viết ở bước 1 đã khớp hoàn toàn với thực tế và import thành công.
-        *   Nếu báo có thay đổi (`+` hoặc `~`), tiến hành điều chỉnh code trong file `.tf` cho khớp hoàn toàn đến khi plan báo không có thay đổi.
-
-#### **Câu 6: Hãy giải thích cách em thiết lập quy trình triển khai Terraform an toàn trong môi trường CI/CD (ví dụ: GitHub Actions). Làm thế nào đảm bảo code hạ tầng được review kỹ lưỡng trước khi apply?**
-*   **Trả lời**: Quy trình triển khai an toàn gồm các bước:
-    1.  **Nhánh Git**: Phân quyền bảo vệ nhánh `main`. Không cho phép push code trực tiếp, bắt buộc phải thông qua Pull Request (PR).
-    2.  **Pipeline khi tạo PR (Plan-on-PR)**: Khi dev tạo PR hướng về nhánh `main`:
-        *   Pipeline tự động kích hoạt: Chạy `terraform fmt -check` (kiểm tra định dạng), `terraform validate` (kiểm tra lỗi cú pháp).
-        *   Chạy lệnh `terraform plan -out=tfplan` để tạo bản vẽ. Pipeline ghi log đầu ra của lệnh plan này trực tiếp vào phần comment của PR để các kỹ sư SRE khác review đánh giá hạ tầng sắp thay đổi.
-    3.  **Phê duyệt**: Bắt buộc phải có ít nhất 1 SRE Lead approve PR.
-    4.  **Pipeline khi Merge (Apply-on-merge)**: Khi PR được merge vào nhánh `main`:
-        *   Pipeline tự động kích hoạt chạy lệnh `terraform apply -auto-approve tfplan`. Sử dụng file plan đã xuất ở bước PR để đảm bảo hạ tầng được deploy chính xác những gì đã được review, tránh các thay đổi phát sinh ngoài ý muốn giữa thời điểm tạo PR và merge code.
+### 3. Tận Dụng Biến Nhạy Cảm & Tách Biệt Môi Trường
+Để tránh lộ thông tin bảo mật khi chạy Terraform trong môi trường tự động hóa:
+*   Sử dụng biến môi trường hệ thống để truyền thông tin nhạy cảm thay vì ghi trực tiếp vào code. Ví dụ: `export TF_VAR_db_password="SuperSecretPassword"`.
+*   Tách biệt hoàn toàn file state của các môi trường (Dev, Staging, Production) bằng cách sử dụng các backend bucket khác nhau hoặc cấu hình tiền tố khóa (key prefix) khác nhau trên S3.
+*   Cấu hình KMS Key để mã hóa dữ liệu của file `terraform.tfstate` khi lưu trữ trên S3 Backend, vì file state chứa toàn bộ thông tin tài nguyên dưới dạng bản rõ (cleartext), kể cả các biến được đánh dấu `sensitive`.

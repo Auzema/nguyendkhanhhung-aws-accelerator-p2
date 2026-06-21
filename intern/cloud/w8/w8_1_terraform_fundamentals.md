@@ -2,46 +2,46 @@
 
 ---
 
-## 📖 Phần 1: Câu Chuyện Thực Tế — Cơn Ác Mộng Click-Tay & Trôi Lệch Cấu Hình
+## Phần 1: Câu Chuyện Thực Tế — Cơn Ác Mộng Click-Tay & Trôi Lệch Cấu Hình
 
-Vào một buổi sáng thứ Hai đẹp trời, Mentor Minh giao cho Nam — một SRE Intern mới gia nhập dự án X-Shop — nhiệm vụ đầu tiên:
-> *"Nam ơi, em lên AWS tạo cho anh một hạ tầng cơ bản để chạy ứng dụng nhé. Gồm có: 1 VPC, 1 Subnet, 1 EC2 Instance đóng vai trò Web Server và 1 S3 Bucket để lưu ảnh sản phẩm."*
+Vào một buổi sáng thứ Hai đẹp trời, Mentor Minh giao cho Nam — một SRE (Site Reliability Engineering — kỹ sư đảm bảo độ tin cậy hệ thống) Intern mới gia nhập dự án X-Shop — nhiệm vụ đầu tiên:
+> *"Nam ơi, em lên AWS (Amazon Web Services — dịch vụ điện toán đám mây của Amazon) tạo cho anh một hạ tầng cơ bản để chạy ứng dụng nhé. Gồm có: 1 VPC (Virtual Private Cloud — mạng ảo riêng tư trên AWS), 1 Subnet (phân vùng mạng con trong VPC), 1 EC2 (Elastic Compute Cloud — dịch vụ máy ảo trên AWS) Instance đóng vai trò Web Server và 1 S3 (Simple Storage Service — dịch vụ lưu trữ đối tượng trên AWS) Bucket để lưu ảnh sản phẩm."*
 
 Nam đăng nhập vào trang quản trị AWS Console, bắt đầu cuộc hành trình "click chuột":
-1. Tìm dịch vụ VPC $\rightarrow$ Click Create VPC $\rightarrow$ Điền IP CIDR.
-2. Tìm dịch vụ EC2 $\rightarrow$ Chọn AMI, chọn size `t3.micro` $\rightarrow$ Tạo Key Pair $\rightarrow$ Cấu hình Security Group mở cổng 80 và 22.
+1. Tìm dịch vụ VPC $\rightarrow$ Click Create VPC $\rightarrow$ Điền IP (Internet Protocol — giao thức internet) CIDR (Classless Inter-Domain Routing — phương pháp định tuyến và phân chia địa chỉ IP).
+2. Tìm dịch vụ EC2 $\rightarrow$ Chọn AMI (Amazon Machine Image — bản mẫu máy ảo cấu hình sẵn trên AWS), chọn size `t3.micro` $\rightarrow$ Tạo Key Pair (cặp khóa bảo mật dùng để đăng nhập máy chủ từ xa) $\rightarrow$ Cấu hình Security Group (nhóm bảo mật đóng vai trò tường lửa kiểm soát lưu lượng truy cập) mở cổng 80 và 22.
 3. Tìm dịch vụ S3 $\rightarrow$ Tạo bucket với tên `xshop-product-images-dev` $\rightarrow$ Tắt Block Public Access để hiển thị ảnh.
 
 Sau gần 2 tiếng đồng hồ vừa click vừa tra cứu, Nam tự hào báo cáo hoàn thành. Mọi thứ chạy trơn tru.
 
 ### Bước Ngoặt Xuất Hiện
 Mentor Minh mỉm cười gật đầu: 
-> *"Tốt lắm Nam. Bây giờ, khách hàng muốn có thêm một môi trường **Staging** để QC test, và một môi trường **Production** để chạy thật. Em tạo thêm 2 môi trường giống hệt Dev giúp anh nhé."*
+> *"Tốt lắm Nam. Bây giờ, khách hàng muốn có thêm một môi trường **Staging** để QC (Quality Control — bộ phận kiểm thử chất lượng) test, và một môi trường **Production** để chạy thật. Em tạo thêm 2 môi trường giống hệt Dev giúp anh nhé."*
 
 Nam bắt đầu toát mồ hôi. Cậu lại tiếp tục hành trình click chuột. Nhưng lần này:
 * Ở môi trường **Staging**: Cậu lỡ tay gõ nhầm IP CIDR của Subnet, dẫn đến việc ứng dụng không thể kết nối tới Database. Cậu tốn thêm 1 tiếng để rà soát lỗi.
 * Ở môi trường **Production**: Cậu quên không mở cổng 80 trên Security Group, khiến khách hàng không truy cập được vào Web Server.
 * Tồi tệ hơn, một developer khác trong team vì muốn sửa lỗi gấp trong đêm đã tự ý lên AWS Console đổi cấu hình của S3 Bucket mà không báo trước. Khi Nam chạy lại hệ thống, mọi thứ đổ vỡ mà không rõ nguyên nhân. Hiện tượng trôi lệch thực tế này được gọi là **Drift (Trôi lệch cấu hình)**.
 
-Để giải quyết triệt để các vấn đề trên, Mentor Minh yêu cầu Nam chuyển dịch toàn bộ sang **Infrastructure as Code (IaC)** sử dụng **Terraform**. Kể từ đây, mọi hạ tầng của dự án sẽ được khai báo bằng code, lưu trữ lịch sử trên Git và kiểm soát nghiêm ngặt.
+Để giải quyết triệt để các vấn đề trên, Mentor Minh yêu cầu Nam chuyển dịch toàn bộ sang **Infrastructure as Code (IaC — hạ tầng dưới dạng mã nguồn)** sử dụng **Terraform** (công cụ IaC nguồn mở phổ biến của HashiCorp). Kể từ đây, mọi hạ tầng của dự án sẽ được khai báo bằng code, lưu trữ lịch sử trên Git và kiểm soát nghiêm ngặt.
 
 ---
 
-## 🛠️ Phần 2: Tài Liệu Kỹ Thuật Chuyên Sâu về Cú Pháp HCL
+## Phần 2: Tài Liệu Kỹ Thuật Chuyên Sâu về Cú Pháp HCL (HashiCorp Configuration Language — ngôn ngữ cấu hình của HashiCorp)
 
-Dưới đây là phần phân tích kỹ thuật nghiêm túc và chi tiết về toàn bộ cú pháp HCL (HashiCorp Configuration Language) được áp dụng trong Terraform.
+Dưới đây là phần phân tích kỹ thuật nghiêm túc và chi tiết về toàn bộ cú pháp HCL (HashiCorp Configuration Language — ngôn ngữ cấu hình của HashiCorp) được áp dụng trong Terraform.
 
 ### 1. Khối Cấu Hình Hệ Thống (Terraform Block)
 Khối `terraform {}` chứa các cài đặt cốt lõi của chính Terraform, bao gồm phiên bản Terraform yêu cầu và các provider cần thiết.
 
 ```hcl
 terraform {
-  required_version = ">= 1.5.0" # Ràng buộc phiên bản Terraform CLI
+  required_version = ">= 1.5.0" # Ràng buộc phiên bản Terraform CLI (Command-Line Interface — giao diện dòng lệnh)
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0" # Ràng buộc phiên bản Provider (chỉ cho phép nâng cấp minor version)
+      version = "~> 5.0" # Ràng buộc phiên bản Provider (nhà cung cấp dịch vụ cloud như AWS, Azure, Google Cloud) (chỉ cho phép nâng cấp minor version)
     }
   }
 }
@@ -164,7 +164,7 @@ output "db_connection_string" {
 
 ---
 
-## 🔁 Phần 3: Biến, Vòng Lặp & Câu Lệnh Điều Kiện trong HCL
+## Phần 3: Biến, Vòng Lặp & Câu Lệnh Điều Kiện trong HCL
 
 ### 1. Toán Tử Điều Kiện (Ternary Operator)
 Cú pháp: `condition ? true_val : false_val`
@@ -223,7 +223,7 @@ output "instance_ids" {
 
 ---
 
-## 🔒 Phần 4: Các Tham Số Siêu Cấu Hình (Meta-Arguments)
+## Phần 4: Các Tham Số Siêu Cấu Hình (Meta-Arguments)
 
 Meta-arguments cấu hình cách thức vận hành và quản lý tài nguyên của Terraform.
 
@@ -247,7 +247,7 @@ resource "aws_eks_cluster" "aws_eks" {
 
 ---
 
-## ⚙️ Phần 5: Hệ Thống Lệnh CLI Chuyên Sâu & Môi Trường Vận Hành
+## Phần 5: Hệ Thống Lệnh CLI (Command-Line Interface — giao diện dòng lệnh) Chuyên Sâu & Môi Trường Vận Hành
 
 Hệ thống lệnh CLI của Terraform hỗ trợ kiểm soát toàn diện vòng đời hạ tầng và xử lý sự cố.
 
@@ -256,14 +256,14 @@ Hệ thống lệnh CLI của Terraform hỗ trợ kiểm soát toàn diện vò
     *   `-upgrade`: Ép buộc tải phiên bản mới nhất của Provider nằm trong khoảng ràng buộc cho phép trong code.
     *   `-backend-config="path/to/backend.tfvars"`: Cấu hình backend (S3, Consul) động tại thời điểm khởi chạy, tách biệt cấu hình backend khỏi code gốc.
 *   **`terraform fmt`**: Tự động chuẩn hóa định dạng, căn lề toàn bộ file `.tf` theo tiêu chuẩn HCL.
-    *   `-check`: Kiểm tra xem các file đã được định dạng đúng chuẩn chưa nhưng không ghi đè thay đổi (thường dùng trong bước kiểm tra của CI pipeline).
+    *   `-check`: Kiểm tra xem các file đã được định dạng đúng chuẩn chưa nhưng không ghi đè thay đổi (thường dùng trong bước kiểm tra của CI (Continuous Integration - tích hợp liên tục) pipeline).
 *   **`terraform validate`**: Kiểm tra tính hợp lệ về mặt cú pháp và logic liên kết của code mà không cần truy vấn hạ tầng thực tế.
 
 ### 2. Nhóm Lệnh Triển Khai & Bản Vẽ Hạ Tầng (Execution Workflow)
 *   **`terraform plan`**: Đối chiếu hạ tầng thực tế, so sánh với code và sinh ra bản vẽ thay đổi.
     *   `-out=path/to/file.tfplan`: Xuất bản vẽ ra một file nhị phân cụ thể. Đảm bảo tính toàn vẹn của kế hoạch triển khai, ngăn chặn việc hạ tầng thực tế bị thay đổi bởi tác nhân khác giữa lúc plan và apply.
     *   `-var="key=value"` hoặc `-var-file="path.tfvars"`: Truyền giá trị cho các biến đầu vào trực tiếp từ CLI.
-    *   `-detailed-exitcode`: Trả về exit code chi tiết (0: không thay đổi, 2: có thay đổi hạ tầng, 1: lỗi). Dùng để lập trình logic tự động hóa trong CI/CD.
+    *   `-detailed-exitcode`: Trả về exit code chi tiết (0: không thay đổi, 2: có thay đổi hạ tầng, 1: lỗi). Dùng để lập trình logic tự động hóa trong CI/CD (Continuous Integration/Continuous Delivery - tích hợp và phân phối liên tục).
     *   `-replace="aws_instance.web[0]"`: (Thay thế lệnh `taint` cũ từ v0.15.2+) Đánh dấu tài nguyên cụ thể sẽ bị hủy và tạo lại ngay trong lượt apply tiếp theo mà không làm ảnh hưởng các tài nguyên khác.
 *   **`terraform apply`**: Thực thi thay đổi lên cloud.
     *   `path/to/file.tfplan`: Triển khai trực tiếp từ file bản vẽ đã xuất ở bước plan mà không cần hỏi lại xác nhận `yes`. Đây là cách triển khai chuẩn trong môi trường sản xuất.
@@ -310,7 +310,7 @@ Hệ thống lệnh CLI của Terraform hỗ trợ kiểm soát toàn diện vò
 
 ---
 
-## 🏗️ Phần 6: Tích Hợp Thực Tế & Các Tình Huống Vận Dụng Dự Án
+## Phần 6: Tích Hợp Thực Tế & Các Tình Huống Vận Dụng Dự Án
 
 ### 1. Quy Trình Import Tài Nguyên Tạo Tay (Console) Vào Code
 Khi hệ thống có sẵn các tài nguyên được tạo thủ công (click tay) từ trước, ta phải đưa chúng vào quản lý tập trung bằng code mà không được gây mất mát dữ liệu hoặc downtime.
@@ -351,4 +351,4 @@ Trong trường hợp tiến trình apply bị crash (mất mạng, mất điệ
 Để tránh lộ thông tin bảo mật khi chạy Terraform trong môi trường tự động hóa:
 *   Sử dụng biến môi trường hệ thống để truyền thông tin nhạy cảm thay vì ghi trực tiếp vào code. Ví dụ: `export TF_VAR_db_password="SuperSecretPassword"`.
 *   Tách biệt hoàn toàn file state của các môi trường (Dev, Staging, Production) bằng cách sử dụng các backend bucket khác nhau hoặc cấu hình tiền tố khóa (key prefix) khác nhau trên S3.
-*   Cấu hình KMS Key để mã hóa dữ liệu của file `terraform.tfstate` khi lưu trữ trên S3 Backend, vì file state chứa toàn bộ thông tin tài nguyên dưới dạng bản rõ (cleartext), kể cả các biến được đánh dấu `sensitive`.
+*   Cấu hình KMS (Key Management Service - dịch vụ quản lý khóa mã hóa của AWS) Key để mã hóa dữ liệu của file `terraform.tfstate` khi lưu trữ trên S3 Backend, vì file state chứa toàn bộ thông tin tài nguyên dưới dạng bản rõ (cleartext), kể cả các biến được đánh dấu `sensitive`.

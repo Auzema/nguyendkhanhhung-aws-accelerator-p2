@@ -1,0 +1,4 @@
+Customer escalation log (TEST DATA - synthetic, not real)
+Cardholder Alice Wonder, card 4012 8888 8888 1881, exp 04/29.
+SSN on file: 456-78-9012. Contact: alice.wonder@example.com, +1 555 0188.
+Driver license issued in California.

@@ -1,0 +1,19 @@
+[
+  {
+    "Id": "sns-target",
+    "Arn": "arn:aws:sns:us-east-1:629149146950:macie-findings-alerts",
+    "InputTransformer": {
+      "InputPathsMap": {
+        "severity": "$.detail.severity.description",
+        "type": "$.detail.type",
+        "account": "$.detail.accountId",
+        "region": "$.detail.region",
+        "bucket": "$.detail.resourcesAffected.s3Bucket.name",
+        "object": "$.detail.resourcesAffected.s3Object.key",
+        "count": "$.detail.count",
+        "desc": "$.detail.description"
+      },
+      "InputTemplate": "\"Amazon Macie sensitive-data finding | Severity: <severity> | Type: <type> | Account: <account> | Region: <region> | Bucket: <bucket> | Object: <object> | Occurrences: <count> | Description: <desc>\""
+    }
+  }
+]
